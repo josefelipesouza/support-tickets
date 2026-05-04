@@ -1,0 +1,26 @@
+{
+  "openapi": "3.0.0",
+  "info": { "title": "Support Tickets API", "version": "1.0.0" },
+  "servers": [{ "url": "http://localhost:8080/api" }],
+  "paths": {
+    "/tickets": {
+      "get": { "tags": ["Tickets"], "summary": "Listar chamados", "responses": { "200": { "description": "OK" } } },
+      "post": {
+        "tags": ["Tickets"], "summary": "Criar chamado",
+        "requestBody": { "required": true, "content": { "application/json": { "schema": { "required": ["title","description","priority","requester_email"], "properties": { "title": { "type": "string" }, "description": { "type": "string" }, "priority": { "type": "string", "enum": ["low","medium","high"] }, "requester_email": { "type": "string" } } } } } },
+        "responses": { "201": { "description": "Criado" }, "422": { "description": "Erro de validação" } }
+      }
+    },
+    "/tickets/{id}": {
+      "get": { "tags": ["Tickets"], "summary": "Buscar por ID", "parameters": [{ "name": "id", "in": "path", "required": true, "schema": { "type": "string" } }], "responses": { "200": { "description": "OK" }, "404": { "description": "Não encontrado" } } }
+    },
+    "/tickets/{id}/status": {
+      "patch": {
+        "tags": ["Tickets"], "summary": "Atualizar status",
+        "parameters": [{ "name": "id", "in": "path", "required": true, "schema": { "type": "string" } }],
+        "requestBody": { "required": true, "content": { "application/json": { "schema": { "required": ["status"], "properties": { "status": { "type": "string", "enum": ["open","in_progress","resolved","closed"] } } } } } },
+        "responses": { "200": { "description": "OK" }, "404": { "description": "Não encontrado" } }
+      }
+    }
+  }
+}
