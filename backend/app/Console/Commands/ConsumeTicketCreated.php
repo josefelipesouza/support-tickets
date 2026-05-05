@@ -19,7 +19,7 @@ class ConsumeTicketCreated extends Command
             $payload = json_decode($message->getBody(), true);
 
             $this->info(sprintf(
-                '[%s] New ticket: #%s - "%s" (priority: %s) from %s',
+                '[%s] New ticket: #%s — "%s" (priority: %s) from %s',
                 now()->toDateTimeString(),
                 $payload['id'],
                 $payload['title'],
@@ -27,7 +27,10 @@ class ConsumeTicketCreated extends Command
                 $payload['requester_email'],
             ));
 
-            $this->info("  -> Email sent to: {$payload['requester_email']}");
+            // Aqui entraria o Mail::to()->send() real
+            $this->info("  → Email sent to: {$payload['requester_email']}");
+
+            $message->ack();
         });
     }
 }
