@@ -21,7 +21,7 @@ jobs:
         ports:
           - 3306:3306
         options: >-
-          --health-cmd="mysqladmin ping -h localhost"
+          --health-cmd="mysqladmin ping -h localhost -uroot -proot"
           --health-interval=10s
           --health-timeout=5s
           --health-retries=5
@@ -54,25 +54,34 @@ jobs:
         working-directory: backend
         run: composer install --prefer-dist --no-progress --no-interaction
 
-      - name: Copy .env
-        working-directory: backend
-        run: cp .env.example .env
-
-      - name: Configure .env for CI
+      - name: Create .env for CI
         working-directory: backend
         run: |
+          cat > .env << 'ENVEOF'
+          APP_NAME=SupportTickets
+          APP_ENV=testing
+          APP_KEY=
+          APP_DEBUG=true
+          APP_URL=http://localhost
+
+          DB_CONNECTION=mysql
+          DB_HOST=127.0.0.1
+          DB_PORT=3306
+          DB_DATABASE=support_tickets_test
+          DB_USERNAME=support
+          DB_PASSWORD=support123
+
+          RABBITMQ_HOST=127.0.0.1
+          RABBITMQ_PORT=5672
+          RABBITMQ_USER=guest
+          RABBITMQ_PASSWORD=guest
+          RABBITMQ_VHOST=/
+
+          CACHE_DRIVER=array
+          SESSION_DRIVER=array
+          QUEUE_CONNECTION=sync
+          ENVEOF
           php artisan key:generate
-          sed -i 's/DB_CONNECTION=.*/DB_CONNECTION=mysql/' .env
-          sed -i 's/DB_HOST=.*/DB_HOST=127.0.0.1/' .env
-          sed -i 's/DB_PORT=.*/DB_PORT=3306/' .env
-          sed -i 's/DB_DATABASE=.*/DB_DATABASE=support_tickets_test/' .env
-          sed -i 's/DB_USERNAME=.*/DB_USERNAME=support/' .env
-          sed -i 's/DB_PASSWORD=.*/DB_PASSWORD=support123/' .env
-          echo "RABBITMQ_HOST=127.0.0.1" >> .env
-          echo "RABBITMQ_PORT=5672" >> .env
-          echo "RABBITMQ_USER=guest" >> .env
-          echo "RABBITMQ_PASSWORD=guest" >> .env
-          echo "RABBITMQ_VHOST=/" >> .env
 
       - name: Run migrations
         working-directory: backend
