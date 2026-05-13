@@ -1,0 +1,259 @@
+# 🎫 Support Tickets
+
+Sistema de chamados de suporte com notificações assíncronas via RabbitMQ, desenvolvido com Laravel 11, Clean Architecture, Vue.js 3 e Docker.
+
+---
+
+## ✅ Funcionalidades
+
+- Abrir chamado (título, descrição, prioridade)
+- Listar chamados
+- Atualizar status do chamado
+- Ao criar chamado → publica mensagem no RabbitMQ → consumer envia e-mail de confirmação
+- Ao atualizar status → publica mensagem no RabbitMQ → consumer envia e-mail de notificação
+
+---
+
+## 🚀 Tecnologias Utilizadas
+
+### Backend
+| Tecnologia | Descrição |
+|---|---|
+| **Laravel 11** | Framework PHP principal |
+| **php-amqplib** | Cliente RabbitMQ para PHP |
+| **MySQL 8** | Banco de dados relacional |
+| **PHPUnit** | Testes automatizados |
+
+### Frontend
+| Tecnologia | Descrição |
+|---|---|
+| **Vue.js 3** | Biblioteca de interface |
+| **Tailwind CSS** | Estilização utilitária |
+| **Vite** | Ambiente de build |
+| **Axios** | Cliente HTTP |
+
+### Infraestrutura
+| Tecnologia | Descrição |
+|---|---|
+| **Docker** | Containerização |
+| **Docker Compose** | Orquestração dos serviços |
+| **RabbitMQ 3.12** | Mensageria assíncrona |
+| **Azure Pipelines** | CI/CD |
+
+### Arquitetura
+- **Clean Architecture** — Separação clara de responsabilidades
+- **SOLID** — Princípios aplicados em todas as camadas
+- **Repository Pattern** — Abstração do acesso a dados
+- **Use Cases** — Casos de uso isolados por responsabilidade
+
+---
+
+## 📂 Estrutura do Projeto
+
+```
+support-tickets/
+│
+├── backend/                          # Laravel 11
+│   ├── app/
+│   │   ├── Console/Commands/         # Consumers RabbitMQ (Artisan)
+│   │   │   ├── ConsumeTicketCreated.php
+│   │   │   └── ConsumeTicketStatusUpdated.php
+│   │   ├── Domain/
+│   │   │   └── Ticket/
+│   │   │       ├── Entities/         # Entidade Ticket
+│   │   │       ├── Repositories/     # Interface do repositório
+│   │   │       └── UseCases/         # CreateTicket, ListTickets, UpdateStatus
+│   │   ├── Http/Controllers/Api/     # TicketController
+│   │   ├── Infrastructure/
+│   │   │   ├── Messaging/            # RabbitMQPublisher, RabbitMQConsumer
+│   │   │   └── Persistence/          # EloquentTicketRepository
+│   │   ├── Mail/                     # Mailables (TicketCreatedMail, TicketStatusUpdatedMail)
+│   │   └── Providers/                # AppServiceProvider (bindings)
+│   └── Dockerfile
+│
+├── frontend/                         # Vue.js 3
+│   └── Dockerfile
+│
+├── docker/
+│   └── nginx/
+│       └── default.conf              # Configuração do Nginx
+│
+└── docker-compose.yml
+```
+
+---
+
+## 🔑 Responsabilidades das Camadas
+
+| Camada | Responsabilidade |
+|---|---|
+| **API (Controllers)** | Receber requisições HTTP e retornar respostas |
+| **Use Cases** | Orquestrar regras de negócio |
+| **Domain (Entities)** | Entidades e regras de negócio puras |
+| **Infrastructure** | Banco de dados, RabbitMQ, repositórios |
+| **Mail** | Templates e envio de e-mails |
+| **Console Commands** | Workers que consomem as filas do RabbitMQ |
+
+---
+
+## ⚙️ Pré-requisitos
+
+- Docker Desktop
+- Git
+
+```bash
+docker --version   # 20+
+```
+
+---
+
+## ▶️ Como Rodar o Projeto
+
+### 🐳 Docker Compose (recomendado)
+
+```bash
+git clone https://github.com/seu-usuario/support-tickets.git
+cd support-tickets
+docker compose up -d --build
+```
+
+Aguarde todos os containers iniciarem e acesse:
+
+| Serviço | URL |
+|---|---|
+| 🌐 Frontend (Vue.js) | http://localhost:5173 |
+| ⚙️ API (Laravel via Nginx) | http://localhost:8080 |
+| 🐰 RabbitMQ Painel | http://localhost:15672 |
+| 🗄️ MySQL | localhost:3306 |
+
+---
+
+## 🐳 Serviços Docker
+
+```yaml
+services:
+  app          # Laravel (PHP-FPM)
+  nginx        # Servidor web / proxy reverso
+  frontend     # Vue.js (Vite)
+  mysql        # Banco de dados
+  rabbitmq     # Mensageria
+  queue_created       # Worker: consome ticket.created → envia e-mail
+  queue_status        # Worker: consome ticket.status_updated → envia e-mail
+```
+
+---
+
+## 📦 Endpoints da API
+
+| Método | Endpoint | Descrição |
+|---|---|---|
+| `GET` | `/api/tickets` | Listar todos os chamados |
+| `GET` | `/api/tickets/{id}` | Buscar chamado por ID |
+| `POST` | `/api/tickets` | Criar novo chamado |
+| `PATCH` | `/api/tickets/{id}/status` | Atualizar status do chamado |
+
+### Criar chamado
+
+```http
+POST /api/tickets
+Content-Type: application/json
+
+{
+  "title": "Servidor fora do ar",
+  "description": "O servidor de produção caiu às 14h",
+  "priority": "high",
+  "requester_email": "usuario@empresa.com"
+}
+```
+
+Resposta `201 Created`:
+
+```json
+{
+  "id": "uuid",
+  "title": "Servidor fora do ar",
+  "description": "O servidor de produção caiu às 14h",
+  "priority": "high",
+  "status": "open",
+  "requesterEmail": "usuario@empresa.com",
+  "createdAt": "2026-05-13T18:00:00Z",
+  "updatedAt": "2026-05-13T18:00:00Z"
+}
+```
+
+### Atualizar status
+
+```http
+PATCH /api/tickets/{id}/status
+Content-Type: application/json
+
+{
+  "status": "in_progress"
+}
+```
+
+**Status disponíveis:** `open` · `in_progress` · `resolved` · `closed`
+
+---
+
+## 🐰 Mensageria — RabbitMQ
+
+Eventos publicados automaticamente nas filas:
+
+| Fila | Quando é disparado | Ação do Consumer |
+|---|---|---|
+| `ticket.created` | Ao criar um chamado | Envia e-mail de confirmação ao solicitante |
+| `ticket.status_updated` | Ao atualizar o status | Envia e-mail de notificação ao solicitante |
+
+### Painel de gerenciamento
+
+```
+URL:    http://localhost:15672
+Usuário: guest
+Senha:   guest
+```
+
+---
+
+## 🧪 Testes
+
+```bash
+docker exec support_app php artisan test
+```
+
+---
+
+## 🔄 CI/CD — Azure Pipelines
+
+O pipeline roda automaticamente a cada push na branch `main`:
+
+```
+Push → Build → Testes → Docker Build
+```
+
+---
+
+## 🏗️ Padrões e Princípios
+
+- **Clean Architecture** — Separação clara de responsabilidades
+- **SOLID** — Princípios aplicados em todas as camadas
+- **Repository Pattern** — Abstração do acesso a dados
+- **Use Case Pattern** — Casos de uso isolados
+- **Event-Driven** — Comunicação assíncrona via RabbitMQ
+
+---
+
+## ✅ Status do Projeto
+
+| Funcionalidade | Status |
+|---|---|
+| Clean Architecture | ✔️ |
+| CRUD de Chamados | ✔️ |
+| Publicação no RabbitMQ | ✔️ |
+| Consumer de e-mails | ✔️ |
+| Templates de e-mail (Markdown) | ✔️ |
+| Frontend Vue.js + Tailwind | ✔️ |
+| Docker Compose | ✔️ |
+| Testes PHPUnit | ✔️ |
+| CI/CD Azure Pipelines | ✔️ |
+| Autenticação JWT | 🔲 Planejado |

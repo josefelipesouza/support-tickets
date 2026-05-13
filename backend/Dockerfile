@@ -15,4 +15,5 @@ RUN printf '[www]\nlisten = 0.0.0.0:9000\n' > /usr/local/etc/php-fpm.d/zz-docker
 WORKDIR /var/www
 
 EXPOSE 9000
-CMD ["php-fpm"]
+CMD ["php-fpm", "--nodaemonize"]
+

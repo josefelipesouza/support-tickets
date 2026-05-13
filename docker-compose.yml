@@ -71,20 +71,34 @@ services:
     networks:
       - support_network
 
-  queue:
+  queue_created:
     build:
       context: ./backend
       dockerfile: Dockerfile
-    container_name: support_queue
+    container_name: support_queue_created
     restart: unless-stopped
     working_dir: /var/www
     volumes:
       - ./backend:/var/www
-    command: php artisan queue:work --sleep=3 --tries=3
+    command: php artisan rabbitmq:consume-tickets
     networks:
       - support_network
     depends_on:
-      - app
+      - rabbitmq
+
+  queue_status:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: support_queue_status
+    restart: unless-stopped
+    working_dir: /var/www
+    volumes:
+      - ./backend:/var/www
+    command: php artisan rabbitmq:consume-ticket-status
+    networks:
+      - support_network
+    depends_on:
       - rabbitmq
 
 networks:
