@@ -38,7 +38,6 @@ Sistema de chamados de suporte com notificações assíncronas via RabbitMQ, des
 | **Docker** | Containerização |
 | **Docker Compose** | Orquestração dos serviços |
 | **RabbitMQ 3.12** | Mensageria assíncrona |
-| **Azure Pipelines** | CI/CD |
 
 ### Arquitetura
 - **Clean Architecture** — Separação clara de responsabilidades
@@ -49,38 +48,26 @@ Sistema de chamados de suporte com notificações assíncronas via RabbitMQ, des
 ---
 
 ## 📂 Estrutura do Projeto
-
-```
 support-tickets/
 │
-├── backend/                          # Laravel 11
+├── .github/workflows/          # Workflows de CI/CD (GitHub Actions)
+│   └── ci.yml
+├── backend/                    # Core da aplicação (Laravel)
 │   ├── app/
-│   │   ├── Console/Commands/         # Consumers RabbitMQ (Artisan)
-│   │   │   ├── ConsumeTicketCreated.php
-│   │   │   └── ConsumeTicketStatusUpdated.php
-│   │   ├── Domain/
-│   │   │   └── Ticket/
-│   │   │       ├── Entities/         # Entidade Ticket
-│   │   │       ├── Repositories/     # Interface do repositório
-│   │   │       └── UseCases/         # CreateTicket, ListTickets, UpdateStatus
-│   │   ├── Http/Controllers/Api/     # TicketController
-│   │   ├── Infrastructure/
-│   │   │   ├── Messaging/            # RabbitMQPublisher, RabbitMQConsumer
-│   │   │   └── Persistence/          # EloquentTicketRepository
-│   │   ├── Mail/                     # Mailables (TicketCreatedMail, TicketStatusUpdatedMail)
-│   │   └── Providers/                # AppServiceProvider (bindings)
-│   └── Dockerfile
+│   │   ├── Console/Commands/   # Consumers (ConsumeTicketCreated.php, etc)
+│   │   ├── Domain/             # Core: Entidades e Interfaces (Business Rules)
+│   │   ├── UseCases/           # Casos de Uso (CreateTicket, UpdateStatus)
+│   │   ├── Infrastructure/     # Implementações (RabbitMQ, Eloquent Repositories)
+│   │   ├── Http/Schemas/       # Definições Swagger/OpenAPI
+│   │   └── Mail/               # Classes de e-mail (TicketCreatedMail, etc)
+│   └── tests/                  # Testes Unitários e de Feature
 │
-├── frontend/                         # Vue.js 3
-│   └── Dockerfile
+├── frontend/                   # Interface do Usuário (Vue.js 3)
+│   ├── src/components/
+│   └── src/App.vue
 │
-├── docker/
-│   └── nginx/
-│       └── default.conf              # Configuração do Nginx
-│
-└── docker-compose.yml
-```
-
+├── docker/                     # Configurações de Infra (Nginx, etc)
+└── docker-compose.yml          # Orquestração completa
 ---
 
 ## 🔑 Responsabilidades das Camadas
@@ -101,15 +88,9 @@ support-tickets/
 - Docker Desktop
 - Git
 
-```bash
-docker --version   # 20+
-```
-
 ---
 
 ## ▶️ Como Rodar o Projeto
-
-### 🐳 Docker Compose (recomendado)
 
 ```bash
 git clone https://github.com/seu-usuario/support-tickets.git
@@ -117,14 +98,10 @@ cd support-tickets
 docker compose up -d --build
 ```
 
-Aguarde todos os containers iniciarem e acesse:
-
 | Serviço | URL |
 |---|---|
-| 🌐 Frontend (Vue.js) | http://localhost:5173 |
-| ⚙️ API (Laravel via Nginx) | http://localhost:8080 |
+| 🌐 Frontend | http://localhost:5173 |
 | 🐰 RabbitMQ Painel | http://localhost:15672 |
-| 🗄️ MySQL | localhost:3306 |
 
 ---
 
@@ -132,11 +109,11 @@ Aguarde todos os containers iniciarem e acesse:
 
 ```yaml
 services:
-  app          # Laravel (PHP-FPM)
-  nginx        # Servidor web / proxy reverso
-  frontend     # Vue.js (Vite)
-  mysql        # Banco de dados
-  rabbitmq     # Mensageria
+  app           # Laravel (PHP-FPM)
+  nginx         # Servidor web / proxy reverso
+  frontend      # Vue.js (Vite)
+  mysql         # Banco de dados
+  rabbitmq      # Mensageria
   queue_created       # Worker: consome ticket.created → envia e-mail
   queue_status        # Worker: consome ticket.status_updated → envia e-mail
 ```
@@ -198,21 +175,10 @@ Content-Type: application/json
 
 ## 🐰 Mensageria — RabbitMQ
 
-Eventos publicados automaticamente nas filas:
-
 | Fila | Quando é disparado | Ação do Consumer |
 |---|---|---|
-| `ticket.created` | Ao criar um chamado | Envia e-mail de confirmação ao solicitante |
-| `ticket.status_updated` | Ao atualizar o status | Envia e-mail de notificação ao solicitante |
-
-### Painel de gerenciamento
-
-```
-URL:    http://localhost:15672
-Usuário: guest
-Senha:   guest
-```
-
+| `ticket.created` | Ao criar um chamado | Envia e-mail de confirmação |
+| `ticket.status_updated` | Ao atualizar o status | Envia e-mail de notificação |
 ---
 
 ## 🧪 Testes
@@ -223,13 +189,9 @@ docker exec support_app php artisan test
 
 ---
 
-## 🔄 CI/CD — Azure Pipelines
+## 🔄 CI/CD 
 
-O pipeline roda automaticamente a cada push na branch `main`:
-
-```
-Push → Build → Testes → Docker Build
-```
+Pipeline roda automaticamente a cada push na branch `main`:
 
 ---
 
@@ -255,5 +217,5 @@ Push → Build → Testes → Docker Build
 | Frontend Vue.js + Tailwind | ✔️ |
 | Docker Compose | ✔️ |
 | Testes PHPUnit | ✔️ |
-| CI/CD Azure Pipelines | ✔️ |
+| CI/CD GitHub Pipelines | ✔️ |
 | Autenticação JWT | 🔲 Planejado |
